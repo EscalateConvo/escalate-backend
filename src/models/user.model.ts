@@ -24,9 +24,9 @@ const userSchema = new mongoose.Schema(
       enum: ["USER", "ORGANIZATION"],
       default: "USER",
     },
-    company: {
+    org: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Company",
+      ref: "Org",
       default: null,
     },
   },

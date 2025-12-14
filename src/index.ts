@@ -1,5 +1,5 @@
 import express from "express";
-import { connectDB } from "./lib/connectdb";
+import { connectDB } from "./lib/db";
 import environments from "./environments";
 import routes from "./routes/index.route";
 

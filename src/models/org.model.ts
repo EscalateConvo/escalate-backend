@@ -1,18 +1,18 @@
 import mongoose from "mongoose";
 
-const companySchema = new mongoose.Schema({
+const orgSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
   },
-  companyDescription: {
+  orgDescription: {
     type: String,
   },
-  companyType: {
+  orgType: {
     type: String,
   },
 });
 
-const Company = mongoose.model("Company", companySchema);
-export default Company;
+const Org = mongoose.model("Org", orgSchema);
+export default Org;
