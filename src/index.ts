@@ -1,16 +1,23 @@
 import express from "express";
 import { connectDB } from "./lib/connectdb";
-import { createAgent } from "./ai/createAgent";
+import environments from "./environments";
+import routes from "./routes/index.route";
 
 const app = express();
-const port = 8000;
+const port = environments.PORT;
 
-connectDB();
+const startServer = async () => {
+  try {
+    await connectDB();
 
-app.get("/", (req, res) => {
-  res.send("Hello from Express Backend");
-});
+    routes(app);
+    app.listen(port, () => {
+      console.log(`🚀 Server running on http://localhost:${port}`);
+    });
+  } catch (error) {
+    console.error("🔴 Error starting server", error);
+    process.exit(1);
+  }
+};
 
-app.listen(port, () => {
-  console.log(`🚀 Server running on port ${port}`);
-});
+startServer();

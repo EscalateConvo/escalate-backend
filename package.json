@@ -15,6 +15,7 @@
     "@elevenlabs/elevenlabs-js": "^2.27.0",
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.2",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "mongoose": "^9.0.1",
@@ -22,6 +23,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "prettier": "^3.4.2"
   }
 }
