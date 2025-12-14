@@ -1,7 +1,11 @@
 import { Router } from "express";
 import { AppResponse } from "../middlewares/error.middleware";
 import { admin } from "../lib/firebaseAdmin";
-import { register, upgradeToOrg } from "../controllers/auth.controller";
+import {
+  getUser,
+  register,
+  upgradeToOrg,
+} from "../controllers/auth.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
@@ -34,6 +38,15 @@ router.post("/upgrade-to-org", authMiddleware, async (req, res, next) => {
     });
 
     AppResponse(res, 200, "Upgraded to organization successfully", result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/get-user", authMiddleware, async (req, res, next) => {
+  try {
+    const user = await getUser({ userId: req.headers["user-id"] as string });
+    AppResponse(res, 200, "User fetched successfully", user);
   } catch (error) {
     next(error);
   }

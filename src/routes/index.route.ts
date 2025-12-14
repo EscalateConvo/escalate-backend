@@ -1,7 +1,8 @@
 import express, { Request, Response, NextFunction } from "express";
 import environments from "../environments";
 import cors from "cors";
-import auth from "./auth.route";
+import authRoutes from "./auth.route";
+import moduleRoutes from "./module.route";
 import { errorMiddleware } from "../middlewares/error.middleware";
 
 const apiLogger = (req: Request, res: Response, next: NextFunction) => {
@@ -39,7 +40,8 @@ export = (app: express.Application) => {
   });
 
   // Authentication routes
-  app.use("/api/auth", auth);
+  app.use("/api/auth", authRoutes);
+  app.use("/api/modules", moduleRoutes);
 
   // Error handling middleware
   app.use(errorMiddleware);

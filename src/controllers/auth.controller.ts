@@ -1,6 +1,7 @@
 import User from "../models/user.model";
 import Org from "../models/org.model";
 import { admin } from "../lib/firebaseAdmin";
+import { NotFoundError } from "../middlewares/error.middleware";
 
 const register = async ({ firebaseId }: { firebaseId: string }) => {
   const user = await User.findOne({ firebaseId });
@@ -52,4 +53,12 @@ const upgradeToOrg = async ({
   return { user, org: newOrg };
 };
 
-export { register, upgradeToOrg };
+const getUser = async ({ userId }: { userId: string }) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+  return user;
+};
+
+export { register, upgradeToOrg, getUser };
