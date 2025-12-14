@@ -43,7 +43,7 @@ router.post("/upgrade-to-org", authMiddleware, async (req, res, next) => {
   }
 });
 
-router.post("/get-user", authMiddleware, async (req, res, next) => {
+router.get("/get-user", authMiddleware, async (req, res, next) => {
   try {
     const user = await getUser({ userId: req.headers["user-id"] as string });
     AppResponse(res, 200, "User fetched successfully", user);
