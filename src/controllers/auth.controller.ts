@@ -17,7 +17,7 @@ const register = async ({ firebaseId }: { firebaseId: string }) => {
     name: userData.displayName || "",
     email: userData.email,
     photoURL: userData.photoURL,
-    type: "USER",
+    type: undefined,
     org: null,
   });
   await newUser.save();
@@ -64,4 +64,26 @@ const getUser = async ({ userId }: { userId: string }) => {
   return user;
 };
 
-export { register, upgradeToOrg, getUser };
+const setUserType = async ({ 
+  userId, 
+  type 
+}: { 
+  userId: string, 
+  type: "USER" | "ORGANIZATION"  
+}) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+  
+  if (user.type && user.type !== null) {
+    throw new Error("User type already set");
+  }
+  
+  user.type = type;
+  await user.save();
+  return user;
+};
+
+
+export { register, upgradeToOrg, getUser, setUserType };
