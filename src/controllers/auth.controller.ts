@@ -1,7 +1,10 @@
 import User from "../models/user.model";
 import Org from "../models/org.model";
 import { admin } from "../lib/firebaseAdmin";
-import { NotFoundError } from "../middlewares/error.middleware";
+import {
+  BadRequestError,
+  NotFoundError,
+} from "../middlewares/error.middleware";
 
 const register = async ({ firebaseId }: { firebaseId: string }) => {
   const user = await User.findOne({ firebaseId });
@@ -14,7 +17,7 @@ const register = async ({ firebaseId }: { firebaseId: string }) => {
     name: userData.displayName || "",
     email: userData.email,
     photoURL: userData.photoURL,
-    type: "USER",
+    type: undefined,
     org: null,
   });
   await newUser.save();
@@ -36,7 +39,7 @@ const upgradeToOrg = async ({
   }
 
   if (user.type === "ORGANIZATION") {
-    throw new Error("User is already an organization");
+    throw new BadRequestError("User is already an organization");
   }
 
   const newOrg = new Org({
@@ -49,8 +52,8 @@ const upgradeToOrg = async ({
   user.type = "ORGANIZATION";
   user.org = newOrg._id;
   await user.save();
-
-  return { user, org: newOrg };
+  const userObject = user.toObject();
+  return { ...userObject, org: newOrg.toObject() };
 };
 
 const getUser = async ({ userId }: { userId: string }) => {
@@ -61,4 +64,26 @@ const getUser = async ({ userId }: { userId: string }) => {
   return user;
 };
 
-export { register, upgradeToOrg, getUser };
+const setUserType = async ({ 
+  userId, 
+  type 
+}: { 
+  userId: string, 
+  type: "USER" | "ORGANIZATION"  
+}) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+  
+  if (user.type && user.type !== null) {
+    throw new Error("User type already set");
+  }
+  
+  user.type = type;
+  await user.save();
+  return user;
+};
+
+
+export { register, upgradeToOrg, getUser, setUserType };

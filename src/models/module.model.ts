@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import validator from "validator";
+import crypto from "crypto";
 
 const moduleSchema = new mongoose.Schema(
   {
@@ -16,9 +18,12 @@ const moduleSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-    users: {
-      type: [mongoose.Schema.Types.ObjectId],
-      ref: "User",
+    userEmails: {
+      type: [String],
+      validate: [
+        (v: string[]) => v.every((email) => validator.isEmail(email)),
+        "Invalid email addresses",
+      ],
       default: [],
     },
     topic: {
@@ -28,6 +33,7 @@ const moduleSchema = new mongoose.Schema(
     difficulty: {
       type: String,
       enum: ["EASY", "MEDIUM", "HARD"],
+      default: "MEDIUM",
       required: true,
     },
     role: {
@@ -46,11 +52,13 @@ const moduleSchema = new mongoose.Schema(
     audioConfig: {
       voiceId: {
         type: String,
+        default: "kdmDKE6EkgrWrrykO9Qt",
         required: true,
       },
       modelId: {
         type: String,
-        default: "eleven_turbo_v2",
+        required: true,
+        default: "eleven_flash_v2_5",
       },
       stability: {
         type: Number,
@@ -63,9 +71,59 @@ const moduleSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    shareURL: {
+      type: String,
+      default: null,
+    },
+    shareToken: {
+      type: String,
+      default: null,
+      unique: true,
+      sparse: true,
+    },
+    shareTokenExpiry: {
+      type: Date,
+      default: null,
+    },
+    isShareable: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );
+
+moduleSchema.methods.generateShareToken = function (expiryDays?: number) {
+  this.shareToken = crypto.randomBytes(32).toString("hex");
+  this.isShareable = true;
+  if (expiryDays) {
+    this.shareTokenExpiry = new Date(
+      Date.now() + expiryDays * 24 * 60 * 60 * 1000,
+    );
+  } else {
+    this.shareTokenExpiry = null;
+  }
+  return this.shareToken;
+};
+
+moduleSchema.methods.revokeShareToken = function () {
+  this.shareToken = null;
+  this.shareTokenExpiry = null;
+  this.isShareable = false;
+  this.shareURL = null;
+};
+
+moduleSchema.methods.isShareTokenValid = function () {
+  if (!this.isShareable || !this.shareToken) {
+    return false;
+  }
+  if (this.shareTokenExpiry && new Date() > this.shareTokenExpiry) {
+    return false;
+  }
+  return true;
+};
+
+moduleSchema.index({ shareToken: 1 });
 
 const Module = mongoose.model("Module", moduleSchema);
 export default Module;

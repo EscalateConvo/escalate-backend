@@ -28,7 +28,7 @@ export const createAgent = async () => {
     tags: ["test"], // List of tags to help classify and filter the agent
     conversationConfig: {
       tts: {
-        voiceId: "21m00Tcm4TlvDq8ikWAM",
+        voiceId: "kdmDKE6EkgrWrrykO9Qt",
         modelId: "eleven_flash_v2",
       },
       agent: {

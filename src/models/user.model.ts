@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema(
     type: {
       type: String,
       enum: ["USER", "ORGANIZATION"],
-      default: "USER",
+      required: false,
     },
     org: {
       type: mongoose.Schema.Types.ObjectId,
