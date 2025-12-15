@@ -28,10 +28,12 @@ const upgradeToOrg = async ({
   userId,
   orgDescription,
   orgType,
+  name,
 }: {
   userId: string;
   orgDescription?: string;
   orgType?: string;
+  name?: string;
 }) => {
   const user = await User.findById(userId);
   if (!user) {
@@ -42,9 +44,14 @@ const upgradeToOrg = async ({
     throw new BadRequestError("User is already an organization");
   }
 
+  if (name) {
+    user.name = name;
+    await user.save();
+  }
+
   const newOrg = new Org({
     user: user._id,
-    orgDescription: orgDescription || user.name,
+    orgDescription: orgDescription,
     orgType: orgType || "OTHER",
   });
   await newOrg.save();

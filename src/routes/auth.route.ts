@@ -29,12 +29,13 @@ router.post("/register", async (req, res, next) => {
 
 router.post("/upgrade-to-org", authMiddleware, async (req, res, next) => {
   try {
-    const { orgDescription, orgType } = req.body;
+    const { orgDescription, orgType, name } = req.body;
 
     const result = await upgradeToOrg({
       userId: req.headers["user-id"] as string,
       orgDescription,
       orgType,
+      name,
     });
 
     AppResponse(res, 200, "Upgraded to organization successfully", result);
