@@ -22,7 +22,8 @@ const userSchema = new mongoose.Schema(
     type: {
       type: String,
       enum: ["USER", "ORGANIZATION"],
-      required: false,
+      default: "USER",
+      required: true,
     },
     org: {
       type: mongoose.Schema.Types.ObjectId,

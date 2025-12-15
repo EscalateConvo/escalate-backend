@@ -5,7 +5,6 @@ import {
   getUser,
   register,
   upgradeToOrg,
-  setUserType,
 } from "../controllers/auth.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 
@@ -48,27 +47,6 @@ router.get("/get-user", authMiddleware, async (req, res, next) => {
   try {
     const user = await getUser({ userId: req.headers["user-id"] as string });
     AppResponse(res, 200, "User fetched successfully", user);
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.post("/set-user-type", authMiddleware, async (req, res, next) => {
-  try {
-    const { type } = req.body;
-    
-    // Validate type
-    if (!type || !["USER", "ORGANIZATION"].includes(type)) {
-      AppResponse(res, 400, "Invalid user type");
-      return;
-    }
-    
-    const user = await setUserType({ 
-      userId: req.headers["user-id"] as string,
-      type: type as "USER" | "ORGANIZATION" 
-    });
-    
-    AppResponse(res, 200, "User type set successfully", user);
   } catch (error) {
     next(error);
   }
