@@ -24,13 +24,15 @@ const register = async ({ firebaseId }: { firebaseId: string }) => {
   return { ...newUser, newUser: true };
 };
 
-const upgradeToOrg = async ({
+const changeRole = async ({
   userId,
+  role,
   orgDescription,
   orgType,
   name,
 }: {
   userId: string;
+  role: "USER" | "ORGANIZATION";
   orgDescription?: string;
   orgType?: string;
   name?: string;
@@ -40,27 +42,47 @@ const upgradeToOrg = async ({
     throw new Error("User not found");
   }
 
-  if (user.type === "ORGANIZATION") {
-    throw new BadRequestError("User is already an organization");
+  if (role === "USER") {
+    if (user.type === "ORGANIZATION") {
+      throw new BadRequestError("User is already an organization");
+    }
+    if (name) {
+      user.name = name;
+      await user.save();
+    }
+    return user.toObject();
   }
 
   if (name) {
     user.name = name;
-    await user.save();
   }
 
-  const newOrg = new Org({
-    user: user._id,
-    orgDescription: orgDescription,
-    orgType: orgType || "OTHER",
-  });
-  await newOrg.save();
+  let org = null;
 
-  user.type = "ORGANIZATION";
-  user.org = newOrg._id;
+  if (user.type === "ORGANIZATION") {
+    org = await Org.findById(user.org);
+    if (!org) {
+      throw new NotFoundError("Organization not found");
+    }
+    if (orgDescription !== undefined) {
+      org.orgDescription = orgDescription;
+    }
+    org.orgType = orgType || org.orgType || "OTHER";
+    await org.save();
+  } else {
+    org = new Org({
+      user: user._id,
+      orgDescription: orgDescription,
+      orgType: orgType || "OTHER",
+    });
+    await org.save();
+    user.type = "ORGANIZATION";
+    user.org = org._id;
+  }
+
   await user.save();
   const userObject = user.toObject();
-  return { ...userObject, org: newOrg.toObject() };
+  return { ...userObject, org: org.toObject() };
 };
 
 const getUser = async ({ userId }: { userId: string }) => {
@@ -71,4 +93,4 @@ const getUser = async ({ userId }: { userId: string }) => {
   return user;
 };
 
-export { register, upgradeToOrg, getUser };
+export { register, changeRole, getUser };

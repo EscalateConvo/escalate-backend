@@ -1,11 +1,7 @@
 import { Router } from "express";
 import { AppResponse } from "../middlewares/error.middleware";
 import { admin } from "../lib/firebaseAdmin";
-import {
-  getUser,
-  register,
-  upgradeToOrg,
-} from "../controllers/auth.controller";
+import { getUser, register, changeRole } from "../controllers/auth.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
@@ -27,12 +23,13 @@ router.post("/register", async (req, res, next) => {
   }
 });
 
-router.post("/upgrade-to-org", authMiddleware, async (req, res, next) => {
+router.post("/change-role", authMiddleware, async (req, res, next) => {
   try {
-    const { orgDescription, orgType, name } = req.body;
+    const { role, orgDescription, orgType, name } = req.body;
 
-    const result = await upgradeToOrg({
+    const result = await changeRole({
       userId: req.headers["user-id"] as string,
+      role,
       orgDescription,
       orgType,
       name,
