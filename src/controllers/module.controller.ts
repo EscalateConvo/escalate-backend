@@ -82,7 +82,7 @@ const getAllModules = async ({ userId }: { userId: string }) => {
     throw new UnauthorizedError("User not found or is not an organization");
   }
   const modules = await Module.find({ createdBy: user._id }).select(
-    "title _id active",
+    "title _id active shareURL shareTokenExpiry topic difficulty",
   );
   return modules;
 };
