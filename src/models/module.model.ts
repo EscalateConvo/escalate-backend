@@ -36,48 +36,59 @@ const moduleSchema = new mongoose.Schema(
       default: "MEDIUM",
       required: true,
     },
-    role: {
-      type: String,
-      required: true,
-    },
-    systemPrompt: {
-      type: String,
-      required: true,
-    },
-    initialEmotion: {
-      type: String,
-      enum: ["neutral", "happy", "angry", "confused", "sad"],
-      default: "neutral",
-    },
-    audioConfig: {
-      voiceId: {
-        type: String,
-        default: "kdmDKE6EkgrWrrykO9Qt",
-        required: true,
-      },
-      modelId: {
+    aiFields: {
+      role: {
         type: String,
         required: true,
-        default: "eleven_flash_v2_5",
       },
-      stability: {
-        type: Number,
-        default: 0.5,
-        min: 0.0,
-        max: 1.0,
+      systemPrompt: {
+        type: String,
+        required: true,
+      },
+      initialEmotion: {
+        type: String,
+        enum: ["neutral", "happy", "angry", "confused", "sad"],
+        default: "neutral",
+      },
+      audioConfig: {
+        voiceId: {
+          type: String,
+          default: "kdmDKE6EkgrWrrykO9Qt",
+          required: true,
+        },
+        modelId: {
+          type: String,
+          required: true,
+          default: "eleven_flash_v2_5",
+        },
+        stability: {
+          type: Number,
+          default: 0.5,
+          min: 0.0,
+          max: 1.0,
+        },
+      },
+      firstMessage: {
+        type: String,
+        required: true,
       },
     },
-    firstMessage: {
-      type: String,
-      required: true,
+    userFields: {
+      role: {
+        type: String,
+        required: true,
+      },
+      problemStatement: {
+        type: String,
+        required: true,
+      },
     },
     shareURL: {
       type: String,
-      default: null,
+      sparse: true,
     },
     shareToken: {
       type: String,
-      default: null,
       unique: true,
       sparse: true,
     },
@@ -85,17 +96,12 @@ const moduleSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    isShareable: {
-      type: Boolean,
-      default: false,
-    },
   },
   { timestamps: true },
 );
 
 moduleSchema.methods.generateShareToken = function (expiryDays?: number) {
   this.shareToken = crypto.randomBytes(32).toString("hex");
-  this.isShareable = true;
   if (expiryDays) {
     this.shareTokenExpiry = new Date(
       Date.now() + expiryDays * 24 * 60 * 60 * 1000,
@@ -107,14 +113,13 @@ moduleSchema.methods.generateShareToken = function (expiryDays?: number) {
 };
 
 moduleSchema.methods.revokeShareToken = function () {
-  this.shareToken = null;
+  this.shareToken = undefined;
   this.shareTokenExpiry = null;
-  this.isShareable = false;
-  this.shareURL = null;
+  this.shareURL = undefined;
 };
 
 moduleSchema.methods.isShareTokenValid = function () {
-  if (!this.isShareable || !this.shareToken) {
+  if (!this.shareToken) {
     return false;
   }
   if (this.shareTokenExpiry && new Date() > this.shareTokenExpiry) {
@@ -123,7 +128,9 @@ moduleSchema.methods.isShareTokenValid = function () {
   return true;
 };
 
-moduleSchema.index({ shareToken: 1 });
+moduleSchema.methods.getAIData = function () {
+  return this.aiFields;
+};
 
 const Module = mongoose.model("Module", moduleSchema);
 export default Module;

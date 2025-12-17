@@ -26,24 +26,18 @@ const createModule = async ({
     !data.title ||
     !data.topic ||
     !data.difficulty ||
-    !data.role ||
-    !data.systemPrompt ||
-    !data.firstMessage
+    !data.aiFields ||
+    !data.userFields ||
+    !data.aiFields.role ||
+    !data.aiFields.systemPrompt ||
+    !data.aiFields.firstMessage ||
+    !data.userFields.role ||
+    !data.userFields.problemStatement
   ) {
     throw new BadRequestError("Please provide all required fields!");
   }
 
-  const {
-    title,
-    topic,
-    difficulty,
-    role,
-    systemPrompt,
-    initialEmotion,
-    audioConfig,
-    firstMessage,
-    userEmails,
-  } = data;
+  const { title, topic, difficulty, aiFields, userFields, userEmails } = data;
 
   const module = new Module({
     title,
@@ -51,11 +45,8 @@ const createModule = async ({
     userEmails,
     topic,
     difficulty,
-    role,
-    systemPrompt,
-    initialEmotion,
-    audioConfig,
-    firstMessage,
+    aiFields,
+    userFields,
   });
   await module.save();
   const moduleObject = module.toObject();
@@ -71,89 +62,6 @@ const getAllModules = async ({ userId }: { userId: string }) => {
     "title _id active",
   );
   return modules;
-};
-
-const generateShareURL = async ({
-  userId,
-  moduleId,
-  expiryDays,
-}: {
-  userId: string;
-  moduleId: string;
-  expiryDays?: number;
-}) => {
-  const user = await User.findById(userId);
-  if (!user || user.type !== "ORGANIZATION") {
-    throw new UnauthorizedError("User not found or is not an organization");
-  }
-
-  const module = await Module.findOne({ _id: moduleId, createdBy: user._id });
-  if (!module) {
-    throw new NotFoundError("Module not found or you don't have access");
-  }
-
-  const token = (module as any).generateShareToken(expiryDays);
-  const shareURL = `${environments.ORIGIN_URL}/share/${token}`;
-  module.shareURL = shareURL;
-  await module.save();
-
-  return {
-    shareURL,
-    shareToken: token,
-    expiresAt: module.shareTokenExpiry,
-    isShareable: module.isShareable,
-  };
-};
-
-const revokeShareURL = async ({
-  userId,
-  moduleId,
-}: {
-  userId: string;
-  moduleId: string;
-}) => {
-  const user = await User.findById(userId);
-  if (!user || user.type !== "ORGANIZATION") {
-    throw new UnauthorizedError("User not found or is not an organization");
-  }
-
-  const module = await Module.findOne({ _id: moduleId, createdBy: user._id });
-  if (!module) {
-    throw new NotFoundError("Module not found or you don't have access");
-  }
-
-  (module as any).revokeShareToken();
-  await module.save();
-
-  return { message: "Share URL revoked successfully" };
-};
-
-const getModuleByShareToken = async ({
-  shareToken,
-}: {
-  shareToken: string;
-}) => {
-  const module = await Module.findOne({ shareToken });
-
-  if (!module) {
-    throw new NotFoundError("Invalid or expired share link");
-  }
-
-  if (!(module as any).isShareTokenValid()) {
-    throw new UnauthorizedError("Share link has expired or been revoked");
-  }
-
-  return {
-    _id: module._id,
-    title: module.title,
-    topic: module.topic,
-    difficulty: module.difficulty,
-    role: module.role,
-    systemPrompt: module.systemPrompt,
-    initialEmotion: module.initialEmotion,
-    audioConfig: module.audioConfig,
-    firstMessage: module.firstMessage,
-  };
 };
 
 const getOneModule = async ({
@@ -203,18 +111,22 @@ const updateModule = async ({
     "title",
     "topic",
     "difficulty",
-    "role",
-    "systemPrompt",
-    "initialEmotion",
-    "audioConfig",
-    "firstMessage",
+    "aiFields",
+    "userFields",
     "userEmails",
     "active",
   ];
 
   allowedFields.forEach((field) => {
     if (data[field] !== undefined) {
-      (module as any)[field] = data[field];
+      if (field === "aiFields" || field === "userFields") {
+        (module as any)[field] = {
+          ...(module as any)[field],
+          ...data[field],
+        };
+      } else {
+        (module as any)[field] = data[field];
+      }
     }
   });
 
@@ -253,13 +165,112 @@ const deleteModule = async ({
   return { message: "Module deleted successfully" };
 };
 
+// Generate a share URL for a module
+const generateShareURL = async ({
+  userId,
+  moduleId,
+  expiryDays,
+}: {
+  userId: string;
+  moduleId: string;
+  expiryDays?: number;
+}) => {
+  const user = await User.findById(userId);
+  if (!user || user.type !== "ORGANIZATION") {
+    throw new UnauthorizedError("User not found or is not an organization");
+  }
+
+  const module = await Module.findOne({ _id: moduleId, createdBy: user._id });
+  if (!module) {
+    throw new NotFoundError("Module not found or you don't have access");
+  }
+
+  const token = (module as any).generateShareToken(expiryDays);
+  const shareURL = `${environments.ORIGIN_URL}/share/${token}`;
+  module.shareURL = shareURL;
+  await module.save();
+
+  return {
+    shareURL,
+    shareToken: token,
+    expiresAt: module.shareTokenExpiry,
+  };
+};
+
+// Revoke a share URL for a module
+const revokeShareURL = async ({
+  userId,
+  moduleId,
+}: {
+  userId: string;
+  moduleId: string;
+}) => {
+  const user = await User.findById(userId);
+  if (!user || user.type !== "ORGANIZATION") {
+    throw new UnauthorizedError("User not found or is not an organization");
+  }
+
+  const module = await Module.findOne({ _id: moduleId, createdBy: user._id });
+  if (!module) {
+    throw new NotFoundError("Module not found or you don't have access");
+  }
+
+  (module as any).revokeShareToken();
+  await module.save();
+
+  return { message: "Share URL revoked successfully" };
+};
+
+// Get a module by email or share token
+const getModuleByEmailOrShareToken = async ({
+  shareToken,
+  userEmail,
+}: {
+  shareToken: string;
+  userEmail: string;
+}) => {
+  const module = await Module.findOne({
+    $or: [{ shareToken }, { userEmails: { $in: [userEmail] } }],
+    active: true,
+  });
+
+  if (!module) {
+    throw new NotFoundError("Invalid or expired share link");
+  }
+
+  if (!(module as any).isShareTokenValid()) {
+    throw new UnauthorizedError("Share link has expired or been revoked");
+  }
+
+  return {
+    _id: module._id,
+    title: module.title,
+    topic: module.topic,
+    userFields: module.userFields,
+  };
+};
+
+// Get all modules by user email
+const getAllModulesByUserEmail = async ({
+  userEmail,
+}: {
+  userEmail: string;
+}) => {
+  const modules = await Module.find({
+    userEmails: { $in: [userEmail] },
+    active: true,
+  }).select("_id title topic userFields");
+  return modules;
+};
+
 export {
   createModule,
   getAllModules,
   generateShareURL,
   revokeShareURL,
-  getModuleByShareToken,
+  getModuleByEmailOrShareToken,
   getOneModule,
   updateModule,
   deleteModule,
+  getAllModulesByUserEmail,
 };

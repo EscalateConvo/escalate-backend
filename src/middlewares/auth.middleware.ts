@@ -19,7 +19,7 @@ const authMiddleware = async (
     const decodedToken = await admin.auth().verifyIdToken(idToken);
 
     const user = await User.findOne({ firebaseId: decodedToken.uid })
-      .select("_id")
+      .select("_id email")
       .lean();
 
     if (!user) {
@@ -30,6 +30,7 @@ const authMiddleware = async (
     req.headers["firebase-id"] = decodedToken.uid;
     req.headers["authorized"] = "true";
     req.headers["user-id"] = user._id.toString();
+    req.headers["user-email"] = user.email;
 
     (req as any).user = {
       uid: decodedToken.uid,
