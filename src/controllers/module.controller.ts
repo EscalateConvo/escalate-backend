@@ -9,6 +9,13 @@ import User from "../models/user.model";
 import Attempt from "../models/attempt.model";
 import AttemptReport from "../models/attemptReport.model";
 import environments from "../environments";
+import {
+  createAgent,
+  updateAgent,
+  deleteAgent,
+  ModuleAIFields,
+  normalizeAIFields,
+} from "../ai/createAgent";
 
 const createModule = async ({
   userId,
@@ -39,15 +46,31 @@ const createModule = async ({
 
   const { title, topic, difficulty, aiFields, userFields, userEmails } = data;
 
+  const normalizedAiFields = normalizeAIFields(aiFields as ModuleAIFields);
+
+  let agentId: string | undefined;
   const module = new Module({
     title,
     createdBy: user._id,
     userEmails,
     topic,
     difficulty,
-    aiFields,
+    aiFields: normalizedAiFields,
     userFields,
+    agentId,
   });
+
+  try {
+    agentId = await createAgent(module.title, normalizedAiFields, {
+      topic: module.topic,
+      difficulty: module.difficulty,
+    });
+  } catch (error) {
+    console.error("Failed to create Eleven Labs agent:", error);
+    throw new BadRequestError("Failed to create AI agent. Please try again.");
+  }
+
+  module.agentId = agentId;
   await module.save();
   const moduleObject = module.toObject();
   return moduleObject;
@@ -117,9 +140,25 @@ const updateModule = async ({
     "active",
   ];
 
+  const aiFieldsChanged = data.aiFields !== undefined;
+  const titleChanged = data.title !== undefined;
+  const topicChanged = data.topic !== undefined;
+  const difficultyChanged = data.difficulty !== undefined;
+
   allowedFields.forEach((field) => {
     if (data[field] !== undefined) {
-      if (field === "aiFields" || field === "userFields") {
+      if (field === "aiFields") {
+        (module as any)[field] = {
+          ...(module as any)[field],
+          ...data[field],
+          audioConfig: data[field].audioConfig
+            ? {
+                ...(module as any)[field]?.audioConfig,
+                ...data[field].audioConfig,
+              }
+            : (module as any)[field]?.audioConfig,
+        };
+      } else if (field === "userFields") {
         (module as any)[field] = {
           ...(module as any)[field],
           ...data[field],
@@ -129,6 +168,49 @@ const updateModule = async ({
       }
     }
   });
+
+  if (aiFieldsChanged || topicChanged || difficultyChanged) {
+    const updatedTitle = titleChanged ? data.title : module.title;
+    const updatedTopic = topicChanged ? data.topic : module.topic;
+    const updatedDifficulty = difficultyChanged
+      ? data.difficulty
+      : module.difficulty;
+    const mergedAiFields = {
+      ...module.aiFields,
+      ...(data.aiFields || {}),
+    };
+    const normalizedAiFields = normalizeAIFields(
+      mergedAiFields as ModuleAIFields,
+    );
+    try {
+      if ((module as any).agentId) {
+        await updateAgent(
+          (module as any).agentId,
+          updatedTitle,
+          normalizedAiFields,
+          {
+            topic: updatedTopic,
+            difficulty: updatedDifficulty,
+          },
+        );
+      } else {
+        const agentId = await createAgent(updatedTitle, normalizedAiFields, {
+          topic: updatedTopic,
+          difficulty: updatedDifficulty,
+        });
+        (module as any).agentId = agentId;
+      }
+    } catch (error) {
+      console.error(
+        `Failed to ${(module as any).agentId ? "update" : "create"} agent:`,
+        error,
+      );
+      throw new BadRequestError(
+        `Failed to ${(module as any).agentId ? "update" : "create"} AI agent. Please try again.`,
+      );
+    }
+    (module as any).aiFields = normalizedAiFields;
+  }
 
   await module.save();
   return module;
@@ -157,6 +239,17 @@ const deleteModule = async ({
 
   const attempts = await Attempt.find({ module: moduleId });
   const attemptIds = attempts.map((attempt) => attempt._id);
+
+  if ((module as any).agentId) {
+    try {
+      await deleteAgent((module as any).agentId);
+    } catch (error) {
+      console.error(
+        `Failed to delete agent ${(module as any).agentId}:`,
+        error,
+      );
+    }
+  }
 
   await AttemptReport.deleteMany({ attempt: { $in: attemptIds } });
   await Attempt.deleteMany({ module: moduleId });

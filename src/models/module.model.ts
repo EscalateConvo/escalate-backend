@@ -1,6 +1,12 @@
 import mongoose from "mongoose";
 import validator from "validator";
 import crypto from "crypto";
+import { TtsConversationalModel } from "@elevenlabs/elevenlabs-js/api/types/TtsConversationalModel";
+import {
+  DEFAULT_MODEL_ID,
+  DEFAULT_VOICE_ID,
+  DEFAULT_STABILITY,
+} from "../ai/createAgent";
 
 const moduleSchema = new mongoose.Schema(
   {
@@ -53,17 +59,18 @@ const moduleSchema = new mongoose.Schema(
       audioConfig: {
         voiceId: {
           type: String,
-          default: "kdmDKE6EkgrWrrykO9Qt",
+          default: DEFAULT_VOICE_ID,
           required: true,
         },
         modelId: {
           type: String,
+          enum: Object.values(TtsConversationalModel),
           required: true,
-          default: "eleven_flash_v2_5",
+          default: DEFAULT_MODEL_ID,
         },
         stability: {
           type: Number,
-          default: 0.5,
+          default: DEFAULT_STABILITY,
           min: 0.0,
           max: 1.0,
         },
@@ -95,6 +102,10 @@ const moduleSchema = new mongoose.Schema(
     shareTokenExpiry: {
       type: Date,
       default: null,
+    },
+    agentId: {
+      type: String,
+      sparse: true,
     },
   },
   { timestamps: true },
