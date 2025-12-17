@@ -343,40 +343,33 @@ const getModuleByEmailOrShareToken = async ({
   };
 };
 
-// Get statistics for an organization
 const getOrganizationStatistics = async ({ userId }: { userId: string }) => {
   const user = await User.findById(userId);
   if (!user || user.type !== "ORGANIZATION") {
     throw new UnauthorizedError("User not found or is not an organization");
   }
 
-  // Get all modules created by this organization
-  const modules = await Module.find({ createdBy: user._id }).select("_id userEmails");
+  const modules = await Module.find({ createdBy: user._id }).select(
+    "_id active",
+  );
 
-  // Calculate total tests assigned (sum of all userEmails across all modules)
-  const totalTestsAssigned = modules.reduce((total, module) => {
-    return total + (module.userEmails?.length || 0);
-  }, 0);
+  const totalModules = modules.length;
 
-  // Get all module IDs
+  const activeModules = modules.filter(
+    (module) => module.active === true,
+  ).length;
+
   const moduleIds = modules.map((m) => m._id);
 
-  // Count completed attempts
   const completedCount = await Attempt.countDocuments({
     module: { $in: moduleIds },
     attemptStatus: "COMPLETED",
   });
 
-  // Count pending attempts
-  const pendingCount = await Attempt.countDocuments({
-    module: { $in: moduleIds },
-    attemptStatus: "PENDING",
-  });
-
   return {
-    totalTestsAssigned,
+    totalModules,
     completed: completedCount,
-    pending: pendingCount,
+    activeModules,
   };
 };
 
@@ -391,18 +384,10 @@ const getAllModulesByUserEmail = async ({
     active: true,
   })
     .select("_id title topic userFields createdBy createdAt")
-    .populate({ path: "createdBy", select: "name email" })
+    .populate({ path: "createdBy", select: "name photoURL" })
     .lean();
 
-  return modules.map((module: any) => ({
-    _id: module._id,
-    title: module.title,
-    topic: module.topic,
-    userFields: module.userFields,
-    createdAt: module.createdAt,
-    organizationName:
-      module.createdBy?.name || module.createdBy?.email || "Unknown Organization",
-  }));
+  return modules;
 };
 
 export {
