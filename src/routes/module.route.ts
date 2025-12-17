@@ -11,6 +11,7 @@ import {
   updateModule,
   deleteModule,
   getAllModulesByUserEmail,
+  getOrganizationStatistics,
 } from "../controllers/module.controller";
 
 const router = Router();
@@ -30,6 +31,16 @@ router.get("/getall", authMiddleware, async (req, res, next) => {
     const user = req.headers["user-id"] as string;
     const modules = await getAllModules({ userId: user });
     return AppResponse(res, 200, "Modules fetched successfully", modules);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/statistics", authMiddleware, async (req, res, next) => {
+  try {
+    const user = req.headers["user-id"] as string;
+    const statistics = await getOrganizationStatistics({ userId: user });
+    return AppResponse(res, 200, "Statistics fetched successfully", statistics);
   } catch (error) {
     next(error);
   }

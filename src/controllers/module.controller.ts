@@ -343,7 +343,44 @@ const getModuleByEmailOrShareToken = async ({
   };
 };
 
-// Get all modules by user email
+// Get statistics for an organization
+const getOrganizationStatistics = async ({ userId }: { userId: string }) => {
+  const user = await User.findById(userId);
+  if (!user || user.type !== "ORGANIZATION") {
+    throw new UnauthorizedError("User not found or is not an organization");
+  }
+
+  // Get all modules created by this organization
+  const modules = await Module.find({ createdBy: user._id }).select("_id userEmails");
+
+  // Calculate total tests assigned (sum of all userEmails across all modules)
+  const totalTestsAssigned = modules.reduce((total, module) => {
+    return total + (module.userEmails?.length || 0);
+  }, 0);
+
+  // Get all module IDs
+  const moduleIds = modules.map((m) => m._id);
+
+  // Count completed attempts
+  const completedCount = await Attempt.countDocuments({
+    module: { $in: moduleIds },
+    attemptStatus: "COMPLETED",
+  });
+
+  // Count pending attempts
+  const pendingCount = await Attempt.countDocuments({
+    module: { $in: moduleIds },
+    attemptStatus: "PENDING",
+  });
+
+  return {
+    totalTestsAssigned,
+    completed: completedCount,
+    pending: pendingCount,
+  };
+};
+
+// Get all modules by user email (for test takers)
 const getAllModulesByUserEmail = async ({
   userEmail,
 }: {
@@ -352,8 +389,20 @@ const getAllModulesByUserEmail = async ({
   const modules = await Module.find({
     userEmails: { $in: [userEmail] },
     active: true,
-  }).select("_id title topic userFields");
-  return modules;
+  })
+    .select("_id title topic userFields createdBy createdAt")
+    .populate({ path: "createdBy", select: "name email" })
+    .lean();
+
+  return modules.map((module: any) => ({
+    _id: module._id,
+    title: module.title,
+    topic: module.topic,
+    userFields: module.userFields,
+    createdAt: module.createdAt,
+    organizationName:
+      module.createdBy?.name || module.createdBy?.email || "Unknown Organization",
+  }));
 };
 
 export {
@@ -366,4 +415,5 @@ export {
   updateModule,
   deleteModule,
   getAllModulesByUserEmail,
+  getOrganizationStatistics,
 };
