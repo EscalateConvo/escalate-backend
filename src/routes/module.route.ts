@@ -12,6 +12,7 @@ import {
   deleteModule,
   getAllModulesByUserEmail,
   getOrganizationStatistics,
+  getSharedModuleById,
 } from "../controllers/module.controller";
 
 const router = Router();
@@ -124,19 +125,31 @@ router.get("/shared/all", authMiddleware, async (req, res, next) => {
   }
 });
 
-// Get a module by share token
-router.get("/shared/:shareToken", authMiddleware, async (req, res, next) => {
+router.get("/shared/:moduleId", authMiddleware, async (req, res, next) => {
   try {
-    const { shareToken } = req.params;
-    const userEmail = req.headers["user-email"] as string;
-    const module = await getModuleByEmailOrShareToken({
-      shareToken,
-      userEmail,
-    });
+    const { moduleId } = req.params;
+    const email = req.headers["user-email"] as string;
+    const userId = req.headers["user-id"] as string;
+    const module = await getSharedModuleById({ email, moduleId, userId });
     return AppResponse(res, 200, "Module fetched successfully", module);
   } catch (error) {
     next(error);
   }
 });
+
+// Get a module by share token
+// router.get("/shared/:shareToken", authMiddleware, async (req, res, next) => {
+//   try {
+//     const { shareToken } = req.params;
+//     const userEmail = req.headers["user-email"] as string;
+//     const module = await getModuleByEmailOrShareToken({
+//       shareToken,
+//       userEmail,
+//     });
+//     return AppResponse(res, 200, "Module fetched successfully", module);
+//   } catch (error) {
+//     next(error);
+//   }
+// });
 
 export default router;

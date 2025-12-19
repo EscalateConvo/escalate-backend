@@ -390,6 +390,36 @@ const getAllModulesByUserEmail = async ({
   return modules;
 };
 
+const getSharedModuleById = async ({
+  email,
+  moduleId,
+  userId,
+}: {
+  email: string;
+  moduleId: string;
+  userId: string;
+}) => {
+  const module = await Module.findOne({
+    _id: moduleId,
+    userEmails: { $in: [email] },
+    active: true,
+  })
+    .select("_id title topic userFields")
+    .lean();
+
+  const attempt = await Attempt.findOne({
+    module: moduleId,
+    user: userId,
+  })
+    .populate({ path: "attemptReport" })
+    .lean();
+  if (!module) {
+    throw new NotFoundError("Module not found or you don't have access");
+  }
+
+  return { ...module, attempt };
+};
+
 export {
   createModule,
   getAllModules,
@@ -401,4 +431,5 @@ export {
   deleteModule,
   getAllModulesByUserEmail,
   getOrganizationStatistics,
+  getSharedModuleById,
 };
