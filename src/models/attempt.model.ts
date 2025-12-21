@@ -18,8 +18,11 @@ const attemptSchema = new Schema(
     },
     attemptStatus: {
       type: String,
-      enum: ["PENDING", "COMPLETED", "ONGOING"],
+      enum: ["PENDING", "COMPLETED"],
       default: "PENDING",
+    },
+    elevenLabsSignedURL: {
+      type: String,
     },
   },
   { timestamps: true },

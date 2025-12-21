@@ -210,6 +210,16 @@ export const createAgent = async (
         },
       },
     },
+    platformSettings: {
+      auth: {
+        enableAuth: true,
+        allowlist: [
+          {
+            hostname: environments.ORIGIN_URL,
+          },
+        ],
+      },
+    },
   });
 
   return agent.agentId;
@@ -243,6 +253,16 @@ export const updateAgent = async (
         prompt: {
           prompt: combinedPrompt,
         },
+      },
+    },
+    platformSettings: {
+      auth: {
+        enableAuth: true,
+        allowlist: [
+          {
+            hostname: environments.ORIGIN_URL,
+          },
+        ],
       },
     },
   });
