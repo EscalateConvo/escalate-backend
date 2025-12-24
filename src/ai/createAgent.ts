@@ -207,6 +207,15 @@ export const createAgent = async (
         firstMessage: normalizedFields.firstMessage,
         prompt: {
           prompt: combinedPrompt,
+          tools: [
+            {
+              name: "end_call",
+              type: "system",
+              params: {
+                systemToolType: "end_call",
+              },
+            },
+          ],
         },
       },
     },
@@ -252,6 +261,15 @@ export const updateAgent = async (
         firstMessage: normalizedFields.firstMessage,
         prompt: {
           prompt: combinedPrompt,
+          tools: [
+            {
+              name: "end_call",
+              type: "system",
+              params: {
+                systemToolType: "end_call",
+              },
+            },
+          ],
         },
       },
     },
