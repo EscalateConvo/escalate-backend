@@ -42,6 +42,12 @@ const moduleSchema = new mongoose.Schema(
       default: "MEDIUM",
       required: true,
     },
+    maxDurationSeconds: {
+      type: Number,
+      default: 180,
+      min: 60,
+      max: 300,
+    },
     aiFields: {
       role: {
         type: String,

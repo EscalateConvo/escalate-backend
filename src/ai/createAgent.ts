@@ -71,6 +71,7 @@ export interface ModuleAIFields {
 interface ModuleMetadata {
   topic: string;
   difficulty: "EASY" | "MEDIUM" | "HARD";
+  maxDurationSeconds: number;
 }
 
 const getDifficultyGuidance = (difficulty: string): string => {
@@ -218,6 +219,9 @@ export const createAgent = async (
           ],
         },
       },
+      conversation: {
+        maxDurationSeconds: metadata.maxDurationSeconds,
+      },
     },
     platformSettings: {
       auth: {
@@ -271,6 +275,9 @@ export const updateAgent = async (
             },
           ],
         },
+      },
+      conversation: {
+        maxDurationSeconds: metadata.maxDurationSeconds,
       },
     },
     platformSettings: {

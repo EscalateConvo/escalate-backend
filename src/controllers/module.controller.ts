@@ -44,9 +44,21 @@ const createModule = async ({
     throw new BadRequestError("Please provide all required fields!");
   }
 
-  const { title, topic, difficulty, aiFields, userFields, userEmails } = data;
+  const {
+    title,
+    topic,
+    difficulty,
+    aiFields,
+    userFields,
+    userEmails,
+    maxDurationSeconds,
+  } = data;
 
   const normalizedAiFields = normalizeAIFields(aiFields as ModuleAIFields);
+  const validatedMaxDuration = Math.min(
+    Math.max(maxDurationSeconds || 180, 60),
+    300,
+  );
 
   let agentId: string | undefined;
   const module = new Module({
@@ -55,6 +67,7 @@ const createModule = async ({
     userEmails,
     topic,
     difficulty,
+    maxDurationSeconds: validatedMaxDuration,
     aiFields: normalizedAiFields,
     userFields,
     agentId,
@@ -64,6 +77,7 @@ const createModule = async ({
     agentId = await createAgent(module.title, normalizedAiFields, {
       topic: module.topic,
       difficulty: module.difficulty,
+      maxDurationSeconds: validatedMaxDuration,
     });
   } catch (error) {
     console.error("Failed to create Eleven Labs agent:", error);
@@ -138,12 +152,14 @@ const updateModule = async ({
     "userFields",
     "userEmails",
     "active",
+    "maxDurationSeconds",
   ];
 
   const aiFieldsChanged = data.aiFields !== undefined;
   const titleChanged = data.title !== undefined;
   const topicChanged = data.topic !== undefined;
   const difficultyChanged = data.difficulty !== undefined;
+  const maxDurationChanged = data.maxDurationSeconds !== undefined;
 
   allowedFields.forEach((field) => {
     if (data[field] !== undefined) {
@@ -169,12 +185,20 @@ const updateModule = async ({
     }
   });
 
-  if (aiFieldsChanged || topicChanged || difficultyChanged) {
+  if (
+    aiFieldsChanged ||
+    topicChanged ||
+    difficultyChanged ||
+    maxDurationChanged
+  ) {
     const updatedTitle = titleChanged ? data.title : module.title;
     const updatedTopic = topicChanged ? data.topic : module.topic;
     const updatedDifficulty = difficultyChanged
       ? data.difficulty
       : module.difficulty;
+    const updatedMaxDuration = maxDurationChanged
+      ? Math.min(Math.max(data.maxDurationSeconds, 60), 300)
+      : (module as any).maxDurationSeconds || 180;
     const mergedAiFields = {
       ...module.aiFields,
       ...(data.aiFields || {}),
@@ -191,12 +215,14 @@ const updateModule = async ({
           {
             topic: updatedTopic,
             difficulty: updatedDifficulty,
+            maxDurationSeconds: updatedMaxDuration,
           },
         );
       } else {
         const agentId = await createAgent(updatedTitle, normalizedAiFields, {
           topic: updatedTopic,
           difficulty: updatedDifficulty,
+          maxDurationSeconds: updatedMaxDuration,
         });
         (module as any).agentId = agentId;
       }
