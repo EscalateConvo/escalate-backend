@@ -8,4 +8,5 @@ export default {
   MONGO_URI: process.env.MONGO_URI || "",
   ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY || "",
   ELEVEN_LABS_WEBHOOK_SECRET: process.env.ELEVEN_LABS_WEBHOOK_SECRET || "",
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
 };
