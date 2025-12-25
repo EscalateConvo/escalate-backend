@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { admin } from "../lib/firebaseAdmin";
 import User from "../models/user.model";
+import environments from "../environments";
+import crypto from "crypto";
 
 const authMiddleware = async (
   req: Request,
@@ -45,4 +47,41 @@ const authMiddleware = async (
   }
 };
 
-export { authMiddleware };
+const elevenLabsAuthMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const headers = req.headers["elevenlabs-signature"].split(",");
+    const timestamp = headers.find((e) => e.startsWith("t=")).substring(2);
+    const signature = headers.find((e) => e.startsWith("v0="));
+    // Validate timestamp
+    const reqTimestamp = timestamp * 1000;
+    const tolerance = Date.now() - 30 * 60 * 1000;
+    if (reqTimestamp < tolerance) {
+      res.status(403).send("Request expired");
+      return;
+    } else {
+      // Validate hash
+      const rawBody = (req as any).rawBody || "";
+      const message = `${timestamp}.${rawBody}`;
+      const digest =
+        "v0=" +
+        crypto
+          .createHmac("sha256", environments.ELEVEN_LABS_WEBHOOK_SECRET)
+          .update(message)
+          .digest("hex");
+      if (signature !== digest) {
+        res.status(401).send("Request unauthorized");
+        return;
+      }
+    }
+    next();
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    res.status(401).json({ message: "Unauthorized: Invalid token" });
+  }
+};
+
+export { authMiddleware, elevenLabsAuthMiddleware };

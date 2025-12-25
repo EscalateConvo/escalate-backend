@@ -46,18 +46,22 @@ const startAttempt = async ({
       includeConversationId: true,
     });
 
+  const conversationId = new URL(
+    elevenLabsSignedURL.signedUrl,
+  ).searchParams.get("conversation_id");
+
   if (existingAttempt?.attemptStatus === "PENDING") {
     existingAttempt.elevenLabsSignedURL = elevenLabsSignedURL.signedUrl;
+    existingAttempt.conversationId = conversationId;
     await existingAttempt.save();
     return existingAttempt;
   }
-
-  console.log("Elevenlabs signed URL", elevenLabsSignedURL);
 
   const attempt = await Attempt.create({
     user: userId,
     module: moduleId,
     elevenLabsSignedURL: elevenLabsSignedURL.signedUrl,
+    conversationId,
   });
   return attempt;
 };

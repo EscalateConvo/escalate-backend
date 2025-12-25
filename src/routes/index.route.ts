@@ -5,6 +5,7 @@ import { errorMiddleware } from "../middlewares/error.middleware";
 import authRoutes from "./auth.route";
 import moduleRoutes from "./module.route";
 import attemptRoutes from "./attempt.route";
+import webhookRoutes from "./webhook.route";
 
 const apiLogger = (req: Request, res: Response, next: NextFunction) => {
   const start = performance.now();
@@ -30,9 +31,18 @@ export = (app: express.Application) => {
       credentials: true,
     }),
   );
+  app.use(apiLogger);
+  app.use(
+    "/webhook",
+    express.json({
+      verify: (req, _res, buf) => {
+        (req as any).rawBody = buf.toString();
+      },
+    }),
+  );
+  app.use("/webhook", webhookRoutes);
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-  app.use(apiLogger);
 
   // Routes
 

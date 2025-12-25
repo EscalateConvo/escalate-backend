@@ -24,6 +24,9 @@ const attemptSchema = new Schema(
     elevenLabsSignedURL: {
       type: String,
     },
+    conversationId: {
+      type: String,
+    },
   },
   { timestamps: true },
 );
