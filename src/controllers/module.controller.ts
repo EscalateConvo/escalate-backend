@@ -208,7 +208,7 @@ const updateModule = async ({
     );
     try {
       if ((module as any).agentId) {
-        await updateAgent(
+        const agentId = await updateAgent(
           (module as any).agentId,
           updatedTitle,
           normalizedAiFields,
@@ -218,6 +218,7 @@ const updateModule = async ({
             maxDurationSeconds: updatedMaxDuration,
           },
         );
+        (module as any).agentId = agentId;
       } else {
         const agentId = await createAgent(updatedTitle, normalizedAiFields, {
           topic: updatedTopic,

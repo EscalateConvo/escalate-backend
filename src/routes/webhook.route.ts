@@ -12,12 +12,7 @@ router.post(
   async (req, res, next) => {
     try {
       const { data } = req.body;
-      const { conversation_id, status, transcript, metadata } = data;
-
-      if (status !== "done") {
-        AppResponse(res, 200, "Attempt report not generated");
-        return;
-      }
+      const { conversation_id, transcript, metadata } = data;
 
       const attempt = await Attempt.findOneAndUpdate(
         { conversationId: conversation_id },

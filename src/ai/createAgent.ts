@@ -253,46 +253,61 @@ export const updateAgent = async (
     normalizedFields.initialEmotion,
   );
 
-  await elevenlabs.conversationalAi.agents.update(agentId, {
-    name: moduleTitle,
-    conversationConfig: {
-      tts: {
-        voiceId: normalizedFields.audioConfig.voiceId,
-        modelId: normalizedFields.audioConfig.modelId as TtsConversationalModel,
-        stability: normalizedFields.audioConfig.stability,
-      },
-      agent: {
-        firstMessage: normalizedFields.firstMessage,
-        prompt: {
-          prompt: combinedPrompt,
-          tools: [
-            {
-              name: "end_call",
-              type: "system",
-              params: {
-                systemToolType: "end_call",
+  try {
+    await elevenlabs.conversationalAi.agents.update(agentId, {
+      name: moduleTitle,
+      conversationConfig: {
+        tts: {
+          voiceId: normalizedFields.audioConfig.voiceId,
+          modelId: normalizedFields.audioConfig
+            .modelId as TtsConversationalModel,
+          stability: normalizedFields.audioConfig.stability,
+        },
+        agent: {
+          firstMessage: normalizedFields.firstMessage,
+          prompt: {
+            prompt: combinedPrompt,
+            tools: [
+              {
+                name: "end_call",
+                type: "system",
+                params: {
+                  systemToolType: "end_call",
+                },
               },
+            ],
+          },
+        },
+        conversation: {
+          maxDurationSeconds: metadata.maxDurationSeconds,
+        },
+      },
+      platformSettings: {
+        auth: {
+          enableAuth: true,
+          allowlist: [
+            {
+              hostname: environments.ORIGIN_URL,
             },
           ],
         },
       },
-      conversation: {
-        maxDurationSeconds: metadata.maxDurationSeconds,
-      },
-    },
-    platformSettings: {
-      auth: {
-        enableAuth: true,
-        allowlist: [
-          {
-            hostname: environments.ORIGIN_URL,
-          },
-        ],
-      },
-    },
-  });
+    });
 
-  return agentId;
+    return agentId;
+  } catch (error: any) {
+    const isNotFound =
+      error?.statusCode === 404 ||
+      error?.status === 404 ||
+      error?.message?.toLowerCase()?.includes("not found");
+
+    if (isNotFound) {
+      const newAgentId = await createAgent(moduleTitle, aiFields, metadata);
+      return newAgentId;
+    }
+
+    throw error;
+  }
 };
 
 export const deleteAgent = async (agentId: string): Promise<void> => {
