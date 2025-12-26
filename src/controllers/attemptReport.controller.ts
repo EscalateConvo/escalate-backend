@@ -1,7 +1,7 @@
 import AttemptReport from "../models/attemptReport.model";
 import { generatePerformanceReport } from "../ai/generateReport";
 import Attempt from "../models/attempt.model";
-import { NotFoundError } from "../middlewares/error.middleware";
+import { ForbiddenError, NotFoundError } from "../middlewares/error.middleware";
 
 interface TranscriptMessage {
   role: "agent" | "user";
@@ -103,4 +103,36 @@ const generateAttemptReport = async ({
   return report;
 };
 
-export { generateAttemptReport };
+const getAttemptReport = async ({
+  attemptReportId,
+  userId,
+}: {
+  attemptReportId: string;
+  userId: string;
+}) => {
+  const attemptReport = await AttemptReport.findById(attemptReportId).populate({
+    path: "attempt",
+    populate: {
+      path: "module",
+    },
+  });
+
+  if (!attemptReport) {
+    throw new NotFoundError("Attempt report not found");
+  }
+
+  const attempt = attemptReport.attempt as unknown as {
+    user: { _id: string };
+    module: { createdBy: { _id: string } };
+  };
+
+  const isModuleCreator = attempt.module.createdBy.toString() === userId;
+
+  if (!isModuleCreator) {
+    throw new ForbiddenError("You don't have access to this report");
+  }
+
+  return attemptReport;
+};
+
+export { generateAttemptReport, getAttemptReport };

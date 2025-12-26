@@ -66,4 +66,28 @@ const startAttempt = async ({
   return attempt;
 };
 
-export { startAttempt };
+const getAttemptsByModuleId = async ({
+  moduleId,
+  userId,
+}: {
+  moduleId: string;
+  userId: string;
+}) => {
+  const module = await Module.findOne({
+    _id: moduleId,
+    createdBy: userId,
+  });
+
+  if (!module) {
+    throw new NotFoundError("Module not found");
+  }
+
+  const attempts = await Attempt.find({
+    module: module._id,
+    user: userId,
+  }).populate("user");
+
+  return attempts;
+};
+
+export { startAttempt, getAttemptsByModuleId };
