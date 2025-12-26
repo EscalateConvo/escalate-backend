@@ -84,8 +84,10 @@ const getAttemptsByModuleId = async ({
 
   const attempts = await Attempt.find({
     module: module._id,
-    user: userId,
-  }).populate("user");
+  })
+    .populate("user")
+    .populate("attemptReport")
+    .sort({ createdAt: -1 });
 
   return attempts;
 };
