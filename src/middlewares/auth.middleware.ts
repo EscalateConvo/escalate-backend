@@ -53,11 +53,21 @@ const elevenLabsAuthMiddleware = async (
   next: NextFunction,
 ) => {
   try {
-    const headers = req.headers["elevenlabs-signature"].split(",");
-    const timestamp = headers.find((e) => e.startsWith("t=")).substring(2);
-    const signature = headers.find((e) => e.startsWith("v0="));
+    const signatureHeader = req.headers["elevenlabs-signature"];
+    if (!signatureHeader || typeof signatureHeader !== "string") {
+      res.status(401).send("Missing signature header");
+      return;
+    }
+    const headers = signatureHeader.split(",");
+    const timestampEntry = headers.find((e: string) => e.startsWith("t="));
+    if (!timestampEntry) {
+      res.status(401).send("Invalid signature format");
+      return;
+    }
+    const timestamp = timestampEntry.substring(2);
+    const signature = headers.find((e: string) => e.startsWith("v0="));
     // Validate timestamp
-    const reqTimestamp = timestamp * 1000;
+    const reqTimestamp = Number(timestamp) * 1000;
     const tolerance = Date.now() - 30 * 60 * 1000;
     if (reqTimestamp < tolerance) {
       res.status(403).send("Request expired");
